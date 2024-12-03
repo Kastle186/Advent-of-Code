@@ -60,7 +60,7 @@ def is_safe_dampened(report: list[int]) -> bool:
             elif series_op == Operation.NONE and diff_1_3 < 0 and abs(diff_1_3) <= 3:
                 series_op = Operation.INCREASE
 
-            if series_op == Operation.NONE or abs(diff_1_3) > 3:
+            if series_op == Operation.NONE or abs(diff_1_3) > 3 or abs(diff_1_3) == 0:
                 diff_2_3 = report[i + 1] - report[i + 2]
 
                 if series_op == Operation.NONE and diff_2_3 > 0 and abs(diff_2_3) <= 3:
@@ -68,7 +68,7 @@ def is_safe_dampened(report: list[int]) -> bool:
                 elif series_op == Operation.NONE and diff_2_3 < 0 and abs(diff_2_3) <= 3:
                     series_op = Operation.INCREASE
 
-                if series_op == Operation.NONE or abs(diff_2_3) > 3:
+                if series_op == Operation.NONE or abs(diff_2_3) > 3 or abs(diff_2_3) == 0:
                     return False
 
                 if (diff_2_3 > 0 and series_op == Operation.INCREASE) \
@@ -90,6 +90,43 @@ def is_safe_dampened(report: list[int]) -> bool:
         if diff == 0:
             if has_forgiven:
                 return False
+
+            if i == len(report) - 2:
+                return True
+
+            diff_1_3 = report[i] - report[i + 2]
+
+            if series_op == Operation.NONE and diff_1_3 > 0 and abs(diff_1_3) <= 3:
+                series_op = Operation.DECREASE
+            elif series_op == Operation.NONE and diff_1_3 < 0 and abs(diff_1_3) <= 3:
+                series_op = Operation.INCREASE
+
+            if series_op == Operation.NONE or abs(diff_1_3) > 3 or abs(diff_1_3) == 0:
+                diff_2_3 = report[i + 1] - report[i + 2]
+
+                if series_op == Operation.NONE and diff_2_3 > 0 and abs(diff_2_3) <= 3:
+                    series_op = Operation.DECREASE
+                elif series_op == Operation.NONE and diff_2_3 < 0 and abs(diff_2_3) <= 3:
+                    series_op = Operation.INCREASE
+
+                if series_op == Operation.NONE or abs(diff_2_3) > 3 or abs(diff_2_3) == 0:
+                    return False
+
+                if (diff_2_3 > 0 and series_op == Operation.INCREASE) \
+                   or (diff_2_3 < 0 and series_op == Operation.DECREASE):
+                    return False
+
+                i += 1
+                has_forgiven = True
+                continue
+
+            if (diff_1_3 > 0 and series_op == Operation.INCREASE) \
+               or (diff_1_3 < 0 and series_op == Operation.DECREASE):
+                return False
+
+            i += 2
+            has_forgiven = True
+            continue
 
     return True
 
