@@ -12,7 +12,7 @@ typedef enum mul_inst_status {
 } mul_inst_status_t;
 
 long extract_from_corruption(char *);
-long extract_from_corruption_do_dont(char *);
+long extract_from_corruption_do_dont(char *, mul_inst_status_t *);
 long extract_mul_data(char *, int *, size_t);
 
 void apply_inst_switch(char *, int *, mul_inst_status_t *);
@@ -30,14 +30,16 @@ int main(int argc, char **argv) {
        it slide today :) */
 
     /* Part One! */
-    /* while (fgets(line, MAX_LINE_LENGTH, fptr) != NULL) { */
-    /*     result1 += extract_from_corruption(line); */
-    /* } */
+    while (fgets(line, MAX_LINE_LENGTH, fptr) != NULL) {
+        result1 += extract_from_corruption(line);
+    }
 
     /* Part Two! */
-    // rewind(fptr);
+    mul_inst_status_t status = ENABLED;
+    rewind(fptr);
+
     while (fgets(line, MAX_LINE_LENGTH, fptr) != NULL) {
-        result2 += extract_from_corruption_do_dont(line);
+        result2 += extract_from_corruption_do_dont(line, &status);
     }
 
     printf("PART ONE: %ld\n", result1);
@@ -66,10 +68,9 @@ long extract_from_corruption(char *prog_line) {
     return result;
 }
 
-long extract_from_corruption_do_dont(char *prog_line) {
+long extract_from_corruption_do_dont(char *prog_line, mul_inst_status_t *status) {
     long result = 0L;
     size_t line_length = strlen(prog_line);
-    mul_inst_status_t status = ENABLED;
 
     for (int i = 0; i < line_length - 7; i++) {
         /* An 'm' means a potential mul() instruction, and a 'd' means a potential
@@ -78,13 +79,13 @@ long extract_from_corruption_do_dont(char *prog_line) {
 
         switch (*(prog_line + i)) {
         case 'd':
-            apply_inst_switch(prog_line, &i, &status);
+            apply_inst_switch(prog_line, &i, status);
             break;
 
         case 'm':
             /* We found a potential mul() instruction but they are disabled, so
                we just skip it. */
-            if (status == DISABLED)
+            if (*status == DISABLED)
                 continue;
 
             // printf("%d\n", i);
@@ -161,8 +162,6 @@ long extract_mul_data(char *prog_line, int *index, size_t line_length) {
 
     long num1 = strtol(num1_str, NULL, 10);
     long num2 = strtol(num2_str, NULL, 10);
-
-    printf("%d - %ld * %ld = %ld\n", *index, num1, num2, num1 * num2);
 
     *index += offset;
     return num1 * num2;
