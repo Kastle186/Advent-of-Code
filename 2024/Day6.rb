@@ -7,6 +7,52 @@ def main(args)
 
   # SETUP!
 
+  lab_grid = File.readlines(input_file, chomp: true)
+
+  ### PART ONE ###
+
+  start_point = find_start_point(lab_grid)
+  guard_trail = test_guard_path(lab_grid, start_point)
+
+  trail_points = Set.new
+  guard_trail.each { |pt| trail_points << pt[0] }
+
+  puts "PART ONE: #{trail_points.size}"
+
+  ### PART TWO ###
+
+  # To figure out the spaces where adding obstacles would get the guard stuck in
+  # a loop, we will leverage the results of Part One. After all, placing an obstacle
+  # where the guard won't pass in the first place wouldn't be very useful.
+
+  # First, delete the origin point. The guard is already standing there, so they
+  # would notice right away if we tried to add a new obstacle there.
+
+  trail_points.delete(start_point)
+  successful_obstacles = 0
+
+  trail_points.each do |space|
+    # Temporarily add an obstacle in each space the guard walks through and test
+    # whether it is now a loop.
+
+    obstacle_x, obstacle_y = space[0], space[1]
+    lab_grid[obstacle_x][obstacle_y] = '#'
+    successful_obstacles += 1 unless test_guard_path(lab_grid, start_point)
+
+    # Restore the empty space for the next test.
+    lab_grid[obstacle_x][obstacle_y] = '.'
+  end
+
+  puts "PART TWO: #{successful_obstacles}"
+end
+
+# HELPER FUNCTIONS!
+
+def test_guard_path(lab_grid, start_point)
+  guard_pt = start_point
+  curr_direction = "NORTH"
+  spaces_visited = Set.new
+
   # Making a pseudo-enum of the 4 different directions here :)
   directions = {
     "NORTH" => [-1, 0],
@@ -15,17 +61,10 @@ def main(args)
     "WEST" => [0, -1]
   }
 
-  lab_grid = File.readlines(input_file, chomp: true)
-  guard_pt = find_start_point(lab_grid)
-  spaces_visited = Set.new
-  curr_direction = "NORTH"
-
-  # PART ONE
-
   while true
     # Add this space to the list of visiteds if we haven't already.
 
-    spaces_visited.add?(guard_pt)
+    return nil unless spaces_visited.add?([guard_pt, curr_direction])
 
     # Test if the next point is the guard's way out.
 
@@ -42,10 +81,8 @@ def main(args)
     end
   end
 
-  puts "PART ONE: #{spaces_visited.size}"
+  return spaces_visited
 end
-
-# HELPER FUNCTIONS!
 
 def find_start_point(grid)
   for i in (0...grid.length)
