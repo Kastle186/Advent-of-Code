@@ -3,15 +3,15 @@
 -- A Lua table playing the role of an Enum :)
 
 Direction = {
-   NONE = 0
-   NORTH = 1
-   NORTHWEST = 2
-   NORTHEAST = 3
-   SOUTH = 4
-   SOUTHWEST = 5
-   SOUTHEAST = 6
-   EAST = 7
-   WEST = 8
+   NONE = 0,
+   NORTH = 1,
+   NORTHWEST = 2,
+   NORTHEAST = 3,
+   SOUTH = 4,
+   SOUTHWEST = 5,
+   SOUTHEAST = 6,
+   EAST = 7,
+   WEST = 8,
 }
 
 function main()
@@ -36,6 +36,7 @@ function main()
 
    -- PART ONE! --
    local result1 = calculate_xmas_count(letter_locs)
+   print("PART ONE: ", result1)
 end
 
 -- HELPER FUNCTIONS! --
@@ -64,23 +65,86 @@ end
 
 function calculate_xmas_count(letter_locs)
    local result = 0
-   local xs = locs_table.X
+   local xs = letter_locs.X
+   local ms = letter_locs.M
 
    for i = 1, #xs do
       local next_x = xs[i]
-      local direction = Direction.NONE
-      local num_words = count_words(letter_locs, next_x, 'X', direction)
 
-      if num_words >= 0 then
-         result += num_words
+      for j = 1, #ms do
+         local next_m = ms[j]
+         local direction = get_adjacency_direction(next_x, next_m)
+
+         -- This 'X' and 'M' are adjacent, so we have a potential 'XMAS' match.
+         if direction ~= Direction.NONE then
+            was_match = is_xmas_match(letter_locs, next_m, 'A', direction)
+            if was_match then result = result + 1 end
+         end
       end
    end
 
    return result
 end
 
-function count_words(letter_locs, start, letter, direction)
-   if letter == 'S' then return 1 end
+function is_xmas_match(letter_locs, curr_letter_loc, next_letter, word_direction)
+   local next_letter_locs = {}
+
+   -- We can be recursing on an 'A' or an 'S', so fetch the corresponding locations.
+
+   if next_letter == 'A' then
+      next_letter_locs = letter_locs.A
+   elseif next_letter == 'S' then
+      next_letter_locs = letter_locs.S
+   end
+
+   for k = 1, #next_letter_locs do
+      local next_letter_loc = next_letter_locs[k]
+      local letters_direction = get_adjacency_direction(curr_letter_loc, next_letter_loc)
+
+      -- If we found a matching letter, then there are two possibilities:
+      -- If it's an 'A', then we now have to recurse to search for the 'S'.
+      -- If it's an 'S', then we've found a match and can just return true.
+
+      if letters_direction == word_direction then
+         return next_letter == 'S'
+            and true
+            or is_xmas_match(letter_locs, next_letter_loc, 'S', word_direction)
+      end
+   end
+
+   return false
+end
+
+function get_adjacency_direction(pt_a, pt_b)
+   -- First, we check the 2D directions, as those have more than one condition
+   -- to fulfill.
+
+   if (pt_a[1] - pt_b[1] == 1) and (pt_a[2] - pt_b[2] == 1) then
+      return Direction.NORTHWEST
+   end
+
+   if (pt_a[1] - pt_b[1] == 1) and (pt_a[2] - pt_b[2] == -1) then
+      return Direction.NORTHEAST
+   end
+
+   if (pt_a[1] - pt_b[1] == -1) and (pt_a[2] - pt_b[2] == 1) then
+      return Direction.SOUTHWEST
+   end
+
+   if (pt_a[1] - pt_b[1] == -1) and (pt_a[2] - pt_b[2] == -1) then
+      return Direction.SOUTHEAST
+   end
+
+   -- Now, we check the 1D directions.
+
+   if pt_a[1] - pt_b[1] == 1 then return Direction.NORTH end
+   if pt_a[1] - pt_b[1] == -1 then return Direction.SOUTH end
+   if pt_a[2] - pt_b[2] == 1 then return Direction.WEST end
+   if pt_a[2] - pt_b[2] == -1 then return Direction.EAST end
+
+   -- If we get here, then those two points are not adjacent to each other in
+   -- any direction.
+   return Direction.NONE
 end
 
 main()
