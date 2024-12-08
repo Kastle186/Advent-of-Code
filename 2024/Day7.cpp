@@ -1,15 +1,18 @@
 #include <iostream>
+#include <format>
 #include <fstream>
 #include <string>
 #include <vector>
 
 #include <boost/algorithm/string.hpp>
 
-bool is_equation_fixable(std::vector<long>);
+bool is_equation_fixable(long,
+                         long,
+                         std::vector<long>::const_iterator,
+                         std::vector<long>::const_iterator,
+                         bool);
 
-bool is_equation_fixable_helper(long,
-                                long,
-                                std::vector<long>::const_iterator)
+long concat_digits(long, long);
 
 int main(int argc, char *argv[])
 {
@@ -44,46 +47,94 @@ int main(int argc, char *argv[])
     }
 
     long long result1 = 0;
+    long long result2 = 0;
 
     for (auto it = equations.cbegin(); it != equations.cend(); it++)
     {
         // Check each equation, and if it's possible to make it true, then add
-        // its result to the puzzle's result.
-        if (is_equation_fixable(*it))
-            result1 += (*it)[0];
+        // its result to the puzzle's result. For our recursive helper, it's best
+        // to have the operands separate from the result. Also, let me be funny
+        // and use iterators here instead of indexes :)
+
+        std::vector<long>::const_iterator equationIter = (*it).cbegin();
+        long equationResult = *equationIter;
+        ++equationIter; // Now points at the first operand.
+
+        bool isPartOneFixable = is_equation_fixable(equationResult,
+                                                    *equationIter,
+                                                    equationIter + 1,
+                                                    (*it).cend(),
+                                                    false);
+
+        bool isPartTwoFixable = is_equation_fixable(equationResult,
+                                                    *equationIter,
+                                                    equationIter + 1,
+                                                    (*it).cend(),
+                                                    true);
+
+        if (isPartOneFixable)
+            result1 += equationResult;
+
+        if (isPartTwoFixable)
+            result2 += equationResult;
     }
 
-    std::cout << "PART ONE: " << result1 << std::endl;
+    std::cout << std::format("PART ONE: {}", result1) << std::endl;
+    std::cout << std::format("PART TWO: {}", result2) << std::endl;
     return 0;
 }
 
-bool is_equation_fixable(std::vector<long> equation)
-{
-    // If we only have two operands, we can just test both options '+' and '*',
-    // and check the result in a reasonable amount of time.
+/* HELPER FUNCTIONS! */
 
-    if (equation.size() == 3)
+bool is_equation_fixable(long expected,
+                         long cumulativeResult,
+                         std::vector<long>::const_iterator operandsIter,
+                         std::vector<long>::const_iterator eqEndIter,
+                         bool isConcatEnabled)
+{
+    // If we've reached the end of the equation, then we just have to check whether
+    // our result matches the expected one. If yes, we've found a solution to the
+    // equation signs. If not, well then no :)
+
+    if (operandsIter == eqEndIter)
+        return cumulativeResult == expected;
+
+    long sumResult = cumulativeResult + *operandsIter;
+    long prodResult = cumulativeResult * *operandsIter;
+
+    // Check the sum and product branches recursively to know if at least one takes
+    // us to the equation's result.
+
+    bool isSumBranchFixable = is_equation_fixable(expected,
+                                                  sumResult,
+                                                  operandsIter + 1,
+                                                  eqEndIter,
+                                                  isConcatEnabled);
+
+    bool isProdBranchFixable = is_equation_fixable(expected,
+                                                   prodResult,
+                                                   operandsIter + 1,
+                                                   eqEndIter,
+                                                   isConcatEnabled);
+
+    if (isConcatEnabled)
     {
-        return (equation[1] + equation[2]) == equation[0]
-            || (equation[1] * equation[2]) == equation[0];
+        long concatResult = concat_digits(cumulativeResult, *operandsIter);
+
+        bool isConcatBranchFixable = is_equation_fixable(expected,
+                                                         concatResult,
+                                                         operandsIter + 1,
+                                                         eqEndIter,
+                                                         isConcatEnabled);
+
+        return isSumBranchFixable || isProdBranchFixable || isConcatBranchFixable;
     }
 
-    // For our recursive helper, it's best to have a list of just the operands.
-    // Also, let me be funny and use iterators here instead of indexes :)
-
-    std::vector<long> ops = std::vector<long>(equation.cbegin() + 1,
-                                              equation.cend());
-
-    long eq_result = *(equation.cbegin());
-    std::vector<long>::const_iterator ops_it = ops.cbegin();
-
-    return is_equation_fixable_helper(eq_result, *ops_it, ++ops_it);
+    return isSumBranchFixable || isProdBranchFixable;
 }
 
-bool is_equation_fixable_helper(
-    long expected,
-    long result,
-    std::vector<long>::const_iterator ops_it)
+long concat_digits(long num1, long num2)
 {
-    return true;
+    std::string pastedNums = std::format("{}{}", num1, num2);
+    return std::stol(pastedNums);
 }
