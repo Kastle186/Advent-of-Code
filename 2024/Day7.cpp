@@ -18,10 +18,6 @@ int main(int argc, char *argv[])
 {
     /* SETUP! */
 
-    // long long test = 116094961956019;
-    // std::cout << test << std::endl;
-    // return 0;
-
     std::ifstream inputFile(argv[1]);
     std::string inputLine;
 
