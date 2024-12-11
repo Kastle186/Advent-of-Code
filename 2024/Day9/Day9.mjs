@@ -18,11 +18,9 @@ function main() {
     // appears in each segment of the compressed disk image.
     const resultDisk = defragmentDisk(fileBlocks, spaceBlocks);
 
-    process.stdout.write("\n");
-    for (let d of resultDisk) {
-        process.stdout.write(d[1].toString().repeat(d[0]));
-    }
-    process.stdout.write("\n");
+    // Calculate the hash by addingmultiplying everything wooooo!
+    const hash = calculateDiskHash(resultDisk);
+    console.log("PART ONE: %s", hash);
 
     return 0;
 }
@@ -60,6 +58,11 @@ function defragmentDisk(files, freeSpace) {
 
     // The first file will always be the first one in the defragmented disk, so we
     // add it here since the beginning.
+    //
+    // Each tuple contains two elements:
+    // 1) How many times this file id is repeated.
+    // 2) Said file id.
+
     defragmented.push([files[0], 0]);
 
     while (true) {
@@ -112,6 +115,22 @@ function defragmentDisk(files, freeSpace) {
     }
 
     return defragmented;
+}
+
+function calculateDiskHash(disk) {
+    let result = BigInt(0);
+    let index = 0;
+
+    for (let memBlock of disk) {
+        const fileSize = memBlock[0];
+        const fileId = memBlock[1];
+
+        for (let count = 0; count < fileSize; count++) {
+            result += BigInt(fileId * index);
+            index++;
+        }
+    }
+    return result;
 }
 
 function printArrayOfTuples(arr, label) {
