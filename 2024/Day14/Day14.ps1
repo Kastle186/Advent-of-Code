@@ -68,32 +68,7 @@ function Run-Main
        }).length
 
     $safetyFactor = $quadrantNW * $quadrantNE * $quadrantSW * $quadrantSE
-    Write-Host "PART ONE: $safetyFactor"
-
-    ### PART TWO! ###
-
-    $elapsedSeconds = 0
-    $happened = 0
-
-    # If our initial grid has at least one bot overlapping another, then we can
-    # be sure they are not making a Christmas Tree shape, so we begin checking
-    # whether this condition happens each second that ticks.
-
-    if (Has-OverlappedBots -Bots $robotVectors)
-    {
-        while ($true)
-        {
-            $elapsedSeconds++
-            $robotVectors = Calculate-Grid -Bots $robotVectors -Seconds 1
-            if (-not (Has-OverlappedBots -Bots $robotVectors))
-            {
-                $happened++
-                if ($happened -gt 1) { break; }
-            }
-        }
-    }
-
-    Write-Host "PART TWO: $elapsedSeconds"
+    Write-Host "ANSWER: $safetyFactor"
 }
 
 function Calculate-Grid([GuardRobot[]]$Bots, [int]$Seconds)
@@ -126,25 +101,6 @@ function Move-Robot([GuardRobot]$Bot, [int]$Times)
     if ($nextY -lt 0) { $nextY = $GridRows - [Math]::Abs($nextY) }
 
     return [GuardRobot]::new(@($nextX, $nextY), $Bot.Velocity)
-}
-
-function Has-OverlappedBots([GuardRobot[]]$Bots)
-{
-    $robotLocations = @{}
-
-    foreach ($bot in $Bots)
-    {
-        $botPos = "$($bot.Position[0]);$($bot.Position[1])"
-
-        if ($robotLocations.Contains($botPos))
-        {
-            return $true
-        }
-
-        $robotLocations[$botPos] = $true
-    }
-
-    return $false
 }
 
 Run-Main
