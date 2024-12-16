@@ -22,6 +22,8 @@ class GuardRobot
 
 function Run-Main
 {
+    ### SETUP! ###
+
     $inputData = Get-Content -Path $InputFile
     $robotVectors = [GuardRobot[]]::new($inputData.length)
 
@@ -33,11 +35,17 @@ function Run-Main
         $robotVectors[$i] = [GuardRobot]::new($robotData)
     }
 
+    ### PART ONE! ###
+
     $finalMap = Calculate-Grid -Bots $robotVectors -Seconds 100
 
     # By flooring this division, we get the 0-value of each axis in our grid.
+
     $axisX = [int][Math]::Floor($GridRows / 2)
     $axisY = [int][Math]::Floor($GridColumns / 2)
+
+    # Calculate the number of spots occupied by one or more robots in each quadrant
+    # of our grid outside the bathroom.
 
     $quadrantNW = `
       ($finalMap | Where-Object {
@@ -61,6 +69,31 @@ function Run-Main
 
     $safetyFactor = $quadrantNW * $quadrantNE * $quadrantSW * $quadrantSE
     Write-Host "PART ONE: $safetyFactor"
+
+    ### PART TWO! ###
+
+    $elapsedSeconds = 0
+    $happened = 0
+
+    # If our initial grid has at least one bot overlapping another, then we can
+    # be sure they are not making a Christmas Tree shape, so we begin checking
+    # whether this condition happens each second that ticks.
+
+    if (Has-OverlappedBots -Bots $robotVectors)
+    {
+        while ($true)
+        {
+            $elapsedSeconds++
+            $robotVectors = Calculate-Grid -Bots $robotVectors -Seconds 1
+            if (-not (Has-OverlappedBots -Bots $robotVectors))
+            {
+                $happened++
+                if ($happened -gt 1) { break; }
+            }
+        }
+    }
+
+    Write-Host "PART TWO: $elapsedSeconds"
 }
 
 function Calculate-Grid([GuardRobot[]]$Bots, [int]$Seconds)
@@ -93,6 +126,25 @@ function Move-Robot([GuardRobot]$Bot, [int]$Times)
     if ($nextY -lt 0) { $nextY = $GridRows - [Math]::Abs($nextY) }
 
     return [GuardRobot]::new(@($nextX, $nextY), $Bot.Velocity)
+}
+
+function Has-OverlappedBots([GuardRobot[]]$Bots)
+{
+    $robotLocations = @{}
+
+    foreach ($bot in $Bots)
+    {
+        $botPos = "$($bot.Position[0]);$($bot.Position[1])"
+
+        if ($robotLocations.Contains($botPos))
+        {
+            return $true
+        }
+
+        $robotLocations[$botPos] = $true
+    }
+
+    return $false
 }
 
 Run-Main
