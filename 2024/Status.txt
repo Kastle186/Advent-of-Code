@@ -12,3 +12,4 @@ Day 09: Part 1 Ready But Input Fails
 Day 10: Not Started
 Day 11: Complete
 Day 12: Started Only
+Day 14: Complete (Won't be doing Part 2)
