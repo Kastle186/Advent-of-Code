@@ -59,14 +59,60 @@ fn main() {
 
     // PART ONE! //
 
-    // println!("\nREGISTERS: {:#?}", vm_registers);
-    // println!("\nPROGRAM: {:?}", vm_program);
-
     let chrono_output: String = run_chrono_vm(&mut vm_registers, &vm_program);
     println!("PART ONE: {}", chrono_output);
 
     // PART TWO! //
+
+    let mut reg_a_start: i64 = 0;
+
+    while reg_a_start <= 5000 {
+        vm_registers.insert('A', reg_a_start);
+        vm_registers.insert('B', 0);
+        vm_registers.insert('C', 0);
+
+        let run_result: String = run_chrono_vm(&mut vm_registers, &vm_program);
+        println!("{} => {}", reg_a_start, run_result);
+        reg_a_start += 8;
+    }
 }
+
+    // let start_exp: u32 = (vm_program.len() as u32) - 1;
+    // let mut reg_a_start: i64 = (i64::checked_pow(8, start_exp)).unwrap();
+    // let reg_a_end: i64 = (i64::checked_pow(8, start_exp + 1)).unwrap();
+    // let program_as_str: String = unwrap_program_vec(&vm_program);
+
+    // while reg_a_start <= reg_a_end {
+    //     vm_registers.insert('A', reg_a_start);
+    //     vm_registers.insert('B', 0);
+    //     vm_registers.insert('C', 0);
+
+    //     let run_result: String = run_chrono_vm(&mut vm_registers, &vm_program);
+    //     reg_a_start += 8;
+
+    //     if run_result == program_as_str {
+    //         break;
+    //     }
+    // }
+
+    // For the next part, we have to find out which value must register 'A' have,
+    // in order for the program output to be the program input itself. We could
+    // try testing all possible combinations until we find the right one, or we
+    // could apply some series maths :D
+
+    // let mut exponent: u32 = 1;
+    // let mut a_reg_result: i64 = 0;
+
+    // for n in vm_program {
+    //     let r: i64 = (n as i64) * i64::checked_pow(8, exponent).unwrap();
+    //     // println!("{} * 8^{} = {}", n, exponent, r);
+    //     // println!("{} + {} = {}", a_reg_result, r, a_reg_result + r);
+    //     a_reg_result += r;
+    //     exponent += 1;
+    // }
+
+    // println!("PART TWO: {}", reg_a_start);
+    // println!("PART TWO: {}", a_reg_result);
 
 fn setup_chrono_vm(setup: &Vec<String>) -> (HashMap<char,i64>, Vec<i8>) {
     // The first three lines of our input are the registers in the format:
@@ -100,6 +146,13 @@ fn unwrap_register(reg_raw_str: String) -> i64 {
                .unwrap()
 }
 
+fn unwrap_program_vec(prog_or_output: &Vec<i8>) -> String {
+    prog_or_output.into_iter()
+                  .map(|elem| elem.to_string())
+                  .collect::<Vec<String>>()
+                  .join(",")
+}
+
 // Virtual Machine Operand Types:
 //
 // - Adv: Combo Operand
@@ -112,25 +165,38 @@ fn unwrap_register(reg_raw_str: String) -> i64 {
 // - Cdv: Combo Operand
 
 fn run_chrono_vm(registers: &mut HashMap<char,i64>, program: &Vec<i8>) -> String {
-    let mut result: Vec<i64> = Vec::new();
+    let mut result: Vec<i8> = Vec::new();
+    let mut iptr: usize = 0;
 
-    for i in (0..program.len()).step_by(2) {
-        let instr = ChronoOpcode::try_from(program[i]).unwrap();
-        let operand = program[i + 1];
+    while iptr < program.len() {
+        let instr = ChronoOpcode::try_from(program[iptr]).unwrap();
+        let operand = program[iptr + 1];
 
+        // Execute the given instruction.
         match instr {
             ChronoOpcode::ADV => instr_adv(operand, registers),
             ChronoOpcode::BXL => instr_bxl(operand, registers),
             ChronoOpcode::BST => instr_bst(operand, registers),
-            ChronoOpcode::JNZ => println!("Under construction!"),
+            ChronoOpcode::JNZ => {
+                // If the result from JNZ is different from our current instruction
+                // pointer, then that means a jump was made
+                let jnz_iptr = instr_jnz(operand, registers, iptr);
+                if jnz_iptr != iptr {
+                    iptr = jnz_iptr;
+                    continue;
+                }
+            }
             ChronoOpcode::BXC => instr_bxc(operand, registers),
-            ChronoOpcode::OUT => println!("Under construction!"),
+            ChronoOpcode::OUT => instr_out(operand, registers, &mut result),
             ChronoOpcode::BDV => instr_bdv(operand, registers),
             ChronoOpcode::CDV => instr_cdv(operand, registers)
         }
+
+        // Move to the next pair of instruction/operand.
+        iptr += 2;
     }
 
-    "Under Construction!".to_string()
+    unwrap_program_vec(&result)
 }
 
 fn instr_adv(op: i8, regs: &mut HashMap<char,i64>) {
@@ -144,13 +210,14 @@ fn instr_bxl(op: i8, regs: &mut HashMap<char,i64>) {
 }
 
 fn instr_bst(op: i8, regs: &mut HashMap<char,i64>) {
-    let actual_op = get_combo_operand(op, &regs);
+    let actual_op: i64 = get_combo_operand(op, &regs);
     let bst_result: i64 = actual_op % 8;
     regs.insert('B', bst_result);
 }
 
-// fn instr_jnz(op: i8, regs: &HashMap<char,i64>, out_vec: &Vec<i64>) {
-// }
+fn instr_jnz(op: i8, regs: &HashMap<char,i64>, iptr: usize) -> usize {
+    if regs[&'A'] == 0 { iptr } else { op as usize }
+}
 
 fn instr_bxc(_op: i8, regs: &mut HashMap<char,i64>) {
     let op1: i64 = regs[&'B'];
@@ -159,8 +226,11 @@ fn instr_bxc(_op: i8, regs: &mut HashMap<char,i64>) {
     regs.insert('B', bxc_result);
 }
 
-// fn instr_out(op: i8, regs: &HashMap<char,i64>, out_vec: &Vec<i64>) {
-// }
+fn instr_out(op: i8, regs: &HashMap<char,i64>, out_vec: &mut Vec<i8>) {
+    let actual_op: i64 = get_combo_operand(op, &regs);
+    let out_result: i8 = (actual_op % 8).try_into().unwrap();
+    out_vec.push(out_result);
+}
 
 fn instr_bdv(op: i8, regs: &mut HashMap<char,i64>) {
     instr_div(get_combo_operand(op, &regs), 'B', regs);
@@ -171,9 +241,7 @@ fn instr_cdv(op: i8, regs: &mut HashMap<char,i64>) {
 }
 
 fn instr_div(combo_op: i64, reg_name: char, regs: &mut HashMap<char,i64>) {
-    let numerator: i64 = regs[&'A'];
-    let denominator: i64 = i64::pow(2, combo_op.try_into().unwrap());
-    let div_result: i64 = numerator / denominator;
+    let div_result: i64 = regs[&'A'] >> combo_op;
     regs.insert(reg_name, div_result);
 }
 
